@@ -1,10 +1,25 @@
 # unit
 
-Shuyra 的纯 Unit 声明库：`UnitFile` / `Deployment` 声明与通用校验。
+Shuyra 的纯 Unit 声明、二进制记录和运行时策略库。
 它从公开基线 `a6c6824ef91ac487919d87374a71b62174d465bd` 的
 `crates/unit` 提取，不是具体 Unit server。
 
 ## 范围
+
+当前接口由宿主与 System 共享：
+
+- `document::Unit<String>` 读取严格的 `unit.toml`；`record::encode/decode`
+  使用带版本的二进制记录。解码字符串借用不可变 initrd，数组由解码结果持有。
+- `runtime::UnitFile` 持有原生策略数组，可通过 `runtime::Unit`（`Arc`）共享，
+  不泄漏内存或生成静态登记。
+- `control.creation = "startup" | "requested"` 表达实例创建时机；两种声明都必须
+  随必要依赖入包。`requires` 决定入包闭包，`after` 表达已选实例的就绪约束。
+- 完整 u64 数值可使用普通非负整数、带引号的十进制或 `0x` 十六进制字符串；
+  TOML 本身不能表达超出 i64 的裸整数，二进制中仍保持原生 u64。
+- `event` 提供带版本的类型化 System 观察帧；业务测试继续使用原生任务退出码。
+
+旧 `UnitFile` / `Deployment` 类型暂供尚未迁移的调用者使用；新的 Deployment
+属于宿主单次调用的内存对象，不存为部署文件。
 
 - 只含 unit 声明类型与通用校验；不含 server / client / execution / programs。
 - 不持有全部 Units 的值、`PROGRAMS` / `DEPLOYMENTS` 注册表，也不从
