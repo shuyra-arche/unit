@@ -1,7 +1,11 @@
 //! Typed System observations carried in framed diagnostic-channel messages.
+mod cause;
 mod error;
+mod exit;
 mod observation;
+pub use cause::Cause;
 pub use error::Error;
+pub use exit::Exit;
 pub use observation::Event;
 
 use alloc::{string::String, vec::Vec};

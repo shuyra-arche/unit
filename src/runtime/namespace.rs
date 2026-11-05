@@ -25,5 +25,13 @@ impl Namespace {
                     !names.is_empty() && names.iter().all(|name| path_valid(name))
                 }
             }
+            && self.bindings.iter().enumerate().all(|(index, binding)| {
+                system_api::operator::name::valid(binding.name)
+                    && binding.mark != env::Mark::NONE
+                    && binding.view != env::Access::NONE
+                    && self.bindings[..index]
+                        .iter()
+                        .all(|previous| previous.name != binding.name)
+            })
     }
 }

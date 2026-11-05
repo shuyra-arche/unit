@@ -13,7 +13,7 @@ impl UnitFile {
         self.name
     }
     pub fn listed(&self) -> bool {
-        self.control.after.is_some()
+        self.control.creation == crate::document::Creation::Startup
     }
     pub fn supply(&self) -> &[crate::Binding] {
         &self.supply.bindings
