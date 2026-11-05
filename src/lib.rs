@@ -1,9 +1,14 @@
 #![no_std]
 //! Pure UnitFile and Deployment declarations with explicit declaration slices.
+extern crate alloc;
 
 pub mod construction;
 pub mod deployment;
 pub mod operator;
+pub mod document;
+pub mod record;
+pub mod runtime;
+pub mod event;
 
 mod control_config;
 mod ending;
