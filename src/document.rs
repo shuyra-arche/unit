@@ -16,12 +16,15 @@ mod placement;
 mod publication;
 mod range;
 mod ready;
+pub mod rights;
+pub use rights::Rights;
 mod retirement;
 mod scope;
 mod space;
 mod subject;
 mod supply;
 mod supply_binding;
+pub mod v2;
 mod validation;
 
 pub use arguments::Arguments;
