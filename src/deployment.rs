@@ -32,10 +32,7 @@ impl Deployment {
     }
 
     pub fn entry<'a>(&self, units: &'a [&'static UnitFile]) -> Option<&'a UnitFile> {
-        units
-            .iter()
-            .copied()
-            .find(|unit| unit.name() == self.entry)
+        units.iter().copied().find(|unit| unit.name() == self.entry)
     }
 
     pub fn entry_image(&self, units: &[&'static UnitFile]) -> Option<&'static str> {

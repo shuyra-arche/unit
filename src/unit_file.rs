@@ -1,5 +1,5 @@
-use crate::{LoaderConfig, OperatorConfig, SupplyConfig};
 use crate::{ControlConfig, Identity};
+use crate::{LoaderConfig, OperatorConfig, SupplyConfig};
 
 /// A program's module configuration.
 #[derive(Clone, Copy)]

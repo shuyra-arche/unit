@@ -3,13 +3,14 @@
 Shuyra 的纯 Unit 声明、二进制记录和运行策略库，由宿主构建工具与 System 共享。
 本仓不提供 Unit server 或具体产品的全局注册表。
 
-仅使用 `document`、`record` 和 `event` 的消费者可设置 `default-features = false`。
+仅使用 `document`、`record`、`bundle` 和 `event` 的消费者可设置 `default-features = false`。
 这条构建路径只依赖 Serde 与 Postcard。默认启用的 `runtime` feature
 提供既有的运行时类型和转换，依赖旧 Env 与 System API，供迁移期间的消费者使用。
 Schema 1 的范围、操作码、权限位和保留标记固定在记录校验中。消费记录后，
 System 仍须按选定的服务协议和 Kernel ABI 显式转换权限并执行授权检查。
 
 - `src/document/`：严格的 `unit.toml` 文档模型。
+- `src/bundle/`：VNI1 包格式与零拷贝索引；Kernel 启动载荷视为不透明字节，由组装者使用选定的 Kernel 契约校验。
 - `src/record/`：带版本的二进制编码与借用解码。
 - `src/runtime/`：持有策略数组的 `UnitFile`，通过 `Arc` 共享。
 - `src/event/`：类型化 System 观察帧。
@@ -29,6 +30,7 @@ System 仍须按选定的服务协议和 Kernel ABI 显式转换权限并执行�
 
 ```sh
 cargo check --no-default-features --target riscv64gc-unknown-none-elf --locked
+cargo test --no-default-features --test bundle --target x86_64-unknown-linux-gnu --locked
 cargo test --no-default-features --test record --target x86_64-unknown-linux-gnu --locked
 cargo check --target x86_64-unknown-linux-gnu --locked
 cargo check --target riscv64gc-unknown-none-elf --locked
