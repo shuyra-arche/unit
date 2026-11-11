@@ -1,5 +1,16 @@
+// Schema 1 fixes these bounds, codes and permission masks in the VNU1 record.
+// They describe serialized declarations. Runtime consumers must separately
+// translate and authorize them against their selected service and Kernel ABI.
 use super::{IdentitySelection, Owner, Ready, Scope, Unit};
 use core::fmt;
+
+const MAX_ARGUMENTS: usize = 64;
+const MAX_DEPENDENCIES: usize = 96;
+const MAX_IMAGE_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_COALITIONS: usize = 16;
+const NAMESPACE_OPERATIONS: u16 = 0x03ff;
+const RESOURCE_ACCESS: u32 = 0x03;
+const RESOURCE_PERMISSIONS: u32 = 0x0f;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Validation {
@@ -23,7 +34,6 @@ impl fmt::Display for Validation {
 impl core::error::Error for Validation {}
 
 pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> {
-    use system_api::operator::{Ops, PathBuf, name::valid};
     if unit.schema != 1 {
         return Err(Validation::Schema);
     }
@@ -31,7 +41,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
         return Err(Validation::Identity);
     }
     if !valid(unit.loader.image.as_ref())
-        || unit.loader.args.len() > system_api::loader::MAX_ARGS
+        || unit.loader.args.len() > MAX_ARGUMENTS
         || unit.loader.stack > 1 << 20
     {
         return Err(Validation::Loader);
@@ -44,8 +54,8 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
                     .all(|previous| previous.as_ref() != name.as_ref())
         })
     };
-    if unit.control.requires.len() > env::ledger::manifest::MAX_PROGRAMS
-        || unit.control.after.len() > env::ledger::manifest::MAX_PROGRAMS
+    if unit.control.requires.len() > MAX_DEPENDENCIES
+        || unit.control.after.len() > MAX_DEPENDENCIES
         || unit.control.groups.len() > 32
         || !distinct(&unit.control.requires)
         || !distinct(&unit.control.after)
@@ -60,8 +70,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
         return Err(Validation::Dependency);
     }
     let path_valid = |value: &str| {
-        PathBuf::try_new(value).is_some_and(|path| path.as_str() == value)
-            && value.split('/').all(valid)
+        value.len() <= 255 && value.split('/').count() <= 8 && value.split('/').all(valid)
     };
     if unit.operator.namespace.len() > 32 {
         return Err(Validation::Namespace);
@@ -69,7 +78,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
     for namespace in &unit.operator.namespace {
         if !valid(namespace.key.as_ref())
             || (!namespace.path.as_ref().is_empty() && !path_valid(namespace.path.as_ref()))
-            || !Ops::from_bits(namespace.ops as u64).is_some_and(Ops::is_valid)
+            || namespace.ops & !NAMESPACE_OPERATIONS != 0
             || namespace
                 .permit
                 .as_ref()
@@ -89,8 +98,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
             if !valid(binding.name.as_ref())
                 || binding.mark == 0
                 || !binding.permit.valid()
-                || !env::Access::from_bits(binding.view)
-                    .is_some_and(|access| access != env::Access::NONE)
+                || (binding.view == 0 || binding.view & !RESOURCE_ACCESS != 0)
                 || namespace.bindings[..at]
                     .iter()
                     .any(|previous| previous.name.as_ref() == binding.name.as_ref())
@@ -101,10 +109,12 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
     }
     if unit.identity.aliases.len() > 32
         || !distinct(&unit.identity.aliases)
-        || unit.identity.grants.iter().enumerate().any(|(at, code)| {
-            system_api::identity::Grant::from_action(*code).is_none()
-                || unit.identity.grants[..at].contains(code)
-        })
+        || unit
+            .identity
+            .grants
+            .iter()
+            .enumerate()
+            .any(|(at, code)| !(1..=20).contains(code) || unit.identity.grants[..at].contains(code))
     {
         return Err(Validation::Grant);
     }
@@ -118,13 +128,11 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
         if !key_valid(binding.source.as_ref())
             || !key_valid(binding.resource.as_ref())
             || binding.slot == 0
-            || !env::Permission::from_bits(binding.permission)
-                .is_some_and(|permission| !permission.is_empty())
-            || system_api::supply::descriptor_mark(env::Mark::new(binding.slot)) == env::Mark::NONE
+            || (binding.permission == 0 || binding.permission & !RESOURCE_PERMISSIONS != 0)
+            || descriptor(binding.slot) == 0
             || unit.supply.bindings[..at].iter().any(|previous| {
                 previous.slot == binding.slot
-                    || system_api::supply::descriptor_mark(env::Mark::new(previous.slot))
-                        == system_api::supply::descriptor_mark(env::Mark::new(binding.slot))
+                    || descriptor(previous.slot) == descriptor(binding.slot)
             })
         {
             return Err(Validation::Supply);
@@ -135,7 +143,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
     }
     for policy in &unit.control.construction {
         if policy.arguments.min > policy.arguments.max
-            || policy.arguments.max as usize > system_api::loader::MAX_ARGS
+            || policy.arguments.max as usize > MAX_ARGUMENTS
             || policy.stack.min > policy.stack.max
             || policy.stack.max > 1 << 20
             || policy
@@ -143,8 +151,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
                 .as_ref()
                 .is_some_and(|name| !valid(name.as_ref()))
             || (policy.unit.is_none()
-                && (policy.max_image == 0
-                    || policy.max_image > system_api::loader::MAX_IMAGE as u64))
+                && (policy.max_image == 0 || policy.max_image > MAX_IMAGE_BYTES))
             || matches!(&policy.owner, Owner::Unit(name) if !valid(name.as_ref()))
         {
             return Err(Validation::Construction);
@@ -152,7 +159,7 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
         if let IdentitySelection::Exact(subject) = &policy.identity
             && (subject.authority == 0
                 || usize::try_from(subject.authority).is_err()
-                || subject.coalitions.len() > system_api::identity::limits::MAX_ACTIVE_COALITIONS
+                || subject.coalitions.len() > MAX_COALITIONS
                 || subject.coalitions.windows(2).any(|pair| pair[0] >= pair[1]))
         {
             return Err(Validation::Construction);
@@ -166,4 +173,18 @@ pub(super) fn validate<S: AsRef<str>>(unit: &Unit<S>) -> Result<(), Validation> 
         return Err(Validation::Retirement);
     }
     Ok(())
+}
+
+fn valid(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 31
+        && !name.contains('/')
+        && !name.as_bytes().contains(&0)
+        && name != "."
+        && name != ".."
+        && !name.chars().any(char::is_control)
+}
+
+fn descriptor(slot: u64) -> u64 {
+    slot.rotate_left(23) ^ 0x5355_5050_4c59_4445
 }

@@ -9,14 +9,26 @@ test = false
 bench = false
 doctest = false
 
+[features]
+default = ["runtime"]
+runtime = ["dep:env", "dep:system-api"]
+
 [dependencies]
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
-env = { git = "https://github.com/shuyra-arche/env.git", rev = "d3000253cd5d13d466e91fafd4dbb27a5ec5aaae" }
-system-api = { git = "https://github.com/shuyra-arche/system.git", rev = "9e5d63ca536a176583cf1b0054b4ecf7ddd88257" }
+env = { git = "https://github.com/shuyra-arche/env.git", rev = "d3000253cd5d13d466e91fafd4dbb27a5ec5aaae", optional = true }
+system-api = { git = "https://github.com/shuyra-arche/system.git", rev = "9e5d63ca536a176583cf1b0054b4ecf7ddd88257", optional = true }
 
 [dev-dependencies]
 toml_edit = { version = "0.23", features = ["serde"] }
 
 [workspace]
 resolver = "3"
+
+[[test]]
+name = "guard_selection"
+required-features = ["runtime"]
+
+[[test]]
+name = "schema"
+required-features = ["runtime"]

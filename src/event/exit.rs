@@ -4,6 +4,7 @@ pub struct Exit {
     pub reason: u64,
 }
 
+#[cfg(feature = "runtime")]
 impl From<env::TaskExit> for Exit {
     fn from(exit: env::TaskExit) -> Self {
         Self {

@@ -61,7 +61,7 @@ fn control_and_authority_variants_survive_binary_encoding() {
         bindings: vec![document::Publication {
             name: "create".into(),
             mark: 99,
-            view: env::Access::STORE.bits().bits(),
+            view: 2,
             permit: document::Permit::Public,
         }],
     });
@@ -69,7 +69,7 @@ fn control_and_authority_variants_survive_binary_encoding() {
         source: "system/initrd".into(),
         resource: "payload".into(),
         slot: 57,
-        permission: env::Permission::FETCH.bits(),
+        permission: 1,
     });
     value.control.construction.push(document::Construction {
         unit: Some("worker".into()),
