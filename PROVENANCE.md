@@ -12,3 +12,12 @@ Recorded source author identities:
 The source snapshot did not declare a project license. This file records
 attribution and grants no license; no license or SPDX identifier is inferred.
 Third-party dependencies retain their own licenses.
+
+The VNI1 envelope and borrowed archive implementation in `src/bundle` were
+migrated from `env-initrd/src/ledger/bundle` in `shuyra-arche/env` at
+`ee9357070996e2e559095904ff137a289a4ca156`. The Unit contract now owns its
+archive format; the boot payload remains opaque and is validated by the
+composition owner against Kernel's public contract. This attribution adds
+no license grant. The archive cases in `tests/bundle.rs` adapt the source's
+byte-frame tests, replacing its Kernel-owner test with an opaque-payload boundary
+check.

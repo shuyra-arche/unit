@@ -9,7 +9,8 @@ pub fn select<'a>(
     name: &str,
     entry: env::ledger::manifest::Entry<'_>,
 ) -> Result<&'a DeploymentValue, DeploymentSelectionError> {
-    let deployment = DeploymentValue::find(deployments, name).ok_or(DeploymentSelectionError::Unknown)?;
+    let deployment =
+        DeploymentValue::find(deployments, name).ok_or(DeploymentSelectionError::Unknown)?;
     let program = units
         .iter()
         .copied()

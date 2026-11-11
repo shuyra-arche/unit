@@ -2,6 +2,7 @@
 //! Pure UnitFile and Deployment declarations with explicit declaration slices.
 extern crate alloc;
 
+pub mod bundle;
 #[cfg(feature = "runtime")]
 pub mod construction;
 #[cfg(feature = "runtime")]
