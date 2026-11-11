@@ -43,3 +43,28 @@ cargo test --tests --target x86_64-unknown-linux-gnu --locked
 
 维护与 PR 规则见 [Shuyra 贡献规范](https://github.com/shuyra-arche/vanllia/blob/main/CONTRIBUTING.md)。
 来源、作者与许可情况见 [PROVENANCE.md](PROVENANCE.md)。
+
+## Native capability declarations (schema 2)
+
+`document::v2` and `record::v2` add explicit declaration intent without importing
+Kernel or System SDKs. The record is VNU2/version 2; the VNI1 bundle remains
+unchanged and treats Unit records as opaque bytes. Runtime authorization and
+conversion to the selected Kernel's checked limits belong to System.
+
+```toml
+schema = 2
+id = "reader"
+[loader]
+image = "reader"
+[supply]
+bindings = [{ source = "system/initrd", resource = "payload", slot = 9, rights = { operations = { share = ["open", "shut"] } } }]
+```
+
+Rights explicitly select None/Clone/Share/Sign/Flat/Nest/Memo operations, separate
+modifiability from distribution, and optionally narrow a relative page window.
+Unknown/mixed operation names, empty/duplicate operations and invalid windows
+are rejected. Schema 2 does not interpret old `permission` or `view` integers;
+providers must choose the intended kind and rights. Existing schema-1 APIs and
+their optional old runtime remain for pinned legacy consumers, while the native
+System consumer selects the pure package and schema 2 explicitly. There is no
+v1-mask-to-v9 permission conversion.
